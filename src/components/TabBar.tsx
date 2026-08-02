@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../constants/theme';
 
@@ -12,7 +11,17 @@ const LABELS: Record<string, string> = {
   goals: 'Metas',
 };
 
-export function TabBar({ state, navigation }: BottomTabBarProps) {
+/**
+ * Minimal shape of what the tab bar actually reads from React Navigation's
+ * `BottomTabBarProps` — kept local instead of importing that type, since
+ * expo-router no longer re-exports it from a stable public path.
+ */
+interface TabBarProps {
+  state: { index: number; routes: { key: string; name: string }[] };
+  navigation: { navigate: (name: string) => void };
+}
+
+export function TabBar({ state, navigation }: TabBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
