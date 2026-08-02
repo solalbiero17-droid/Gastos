@@ -1,22 +1,22 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
-import { useAuth } from '../context/AuthContext';
+import { useSession } from '../context/SessionContext';
 import { useData } from '../context/DataContext';
 import { colors } from '../constants/theme';
 
 /**
- * Renders nothing visible once ready; while auth/data state is unknown it
+ * Renders nothing visible once ready; while session/data state is unknown it
  * shows a blocking overlay so the wrong screen never flashes before the
  * redirect effect below runs.
  */
 export function RootNavigationGate() {
-  const { user, initializing } = useAuth();
+  const { loggedIn, initializing } = useSession();
   const { setupComplete, loading } = useData();
   const router = useRouter();
   const segments = useSegments();
 
-  const settled = !initializing && (!user || !loading);
+  const settled = !initializing && !loading;
 
   useEffect(() => {
     if (!settled) return;
@@ -25,14 +25,14 @@ export function RootNavigationGate() {
     const inSetup = group === 'setup';
     const inApp = group === '(tabs)' || group === 'add' || group === 'limits';
 
-    if (!user && !inAuthFlow) {
+    if (!loggedIn && !inAuthFlow) {
       router.replace('/login');
-    } else if (user && !setupComplete && !inSetup) {
+    } else if (loggedIn && !setupComplete && !inSetup) {
       router.replace('/setup');
-    } else if (user && setupComplete && !inApp) {
+    } else if (loggedIn && setupComplete && !inApp) {
       router.replace('/(tabs)');
     }
-  }, [settled, user, setupComplete, segments, router]);
+  }, [settled, loggedIn, setupComplete, segments, router]);
 
   if (settled) return null;
 

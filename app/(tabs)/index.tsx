@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '../../src/context/AuthContext';
+import { useSession } from '../../src/context/SessionContext';
 import { useData } from '../../src/context/DataContext';
 import { useToast } from '../../src/context/ToastContext';
 import { Toast, AlertBanner } from '../../src/components/Toast';
@@ -17,7 +17,7 @@ import { categoryInitial, categoryViews, overallLimit, spentByCategory } from '.
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout } = useSession();
   const { categories, limits, transactions, warnThreshold } = useData();
   const { toast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);

@@ -12,7 +12,7 @@ import {
   Nunito_800ExtraBold,
   Nunito_900Black,
 } from '@expo-google-fonts/nunito';
-import { AuthProvider } from '../src/context/AuthContext';
+import { SessionProvider } from '../src/context/SessionContext';
 import { DataProvider } from '../src/context/DataContext';
 import { ToastProvider } from '../src/context/ToastContext';
 import { RootNavigationGate } from '../src/navigation/RootNavigationGate';
@@ -42,7 +42,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
+        <SessionProvider>
           <DataProvider>
             <ToastProvider>
               <View style={{ flex: 1, backgroundColor: colors.appBg }}>
@@ -57,7 +57,7 @@ export default function RootLayout() {
               </View>
             </ToastProvider>
           </DataProvider>
-        </AuthProvider>
+        </SessionProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

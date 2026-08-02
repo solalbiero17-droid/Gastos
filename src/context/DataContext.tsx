@@ -1,18 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  setDoc,
-  updateDoc,
-  addDoc,
-  deleteDoc,
-  type Unsubscribe,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { useAuth } from './AuthContext';
+import { readJson, writeJson, StorageKeys } from '../storage';
 import type { Account, Category, Goal, Limits, Transaction } from '../types';
 import { DEFAULT_CATEGORY_LIMIT, DEFAULT_WARN_THRESHOLD, NEW_CATEGORY_HUES } from '../constants/theme';
 
@@ -49,6 +36,9 @@ interface ProfileDoc {
   warnThreshold: number;
 }
 
+const EMPTY_CONFIG: ConfigDoc = { categories: [], accounts: [], limits: {} };
+const DEFAULT_PROFILE: ProfileDoc = { setupComplete: false, warnThreshold: DEFAULT_WARN_THRESHOLD };
+
 interface DataContextValue {
   loading: boolean;
   setupComplete: boolean;
@@ -70,67 +60,30 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const uid = user?.uid ?? null;
-
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<ProfileDoc>({ setupComplete: false, warnThreshold: DEFAULT_WARN_THRESHOLD });
-  const [config, setConfig] = useState<ConfigDoc>({ categories: [], accounts: [], limits: {} });
+  const [profile, setProfile] = useState<ProfileDoc>(DEFAULT_PROFILE);
+  const [config, setConfig] = useState<ConfigDoc>(EMPTY_CONFIG);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
 
   useEffect(() => {
-    if (!uid) {
+    (async () => {
+      const [p, c, t, g] = await Promise.all([
+        readJson(StorageKeys.profile, DEFAULT_PROFILE),
+        readJson(StorageKeys.config, EMPTY_CONFIG),
+        readJson(StorageKeys.transactions, [] as Transaction[]),
+        readJson(StorageKeys.goals, [] as Goal[]),
+      ]);
+      setProfile(p);
+      setConfig(c);
+      setTransactions(t);
+      setGoals(g);
       setLoading(false);
-      return;
-    }
-    setLoading(true);
-    let pending = 4;
-    const settle = () => {
-      pending -= 1;
-      if (pending <= 0) setLoading(false);
-    };
+    })();
+  }, []);
 
-    const unsubs: Unsubscribe[] = [];
-
-    unsubs.push(
-      onSnapshot(doc(db, 'users', uid), (snap) => {
-        const data = snap.data() as ProfileDoc | undefined;
-        setProfile(data ?? { setupComplete: false, warnThreshold: DEFAULT_WARN_THRESHOLD });
-        settle();
-      })
-    );
-
-    unsubs.push(
-      onSnapshot(doc(db, 'users', uid, 'config', 'data'), (snap) => {
-        const data = snap.data() as ConfigDoc | undefined;
-        setConfig(data ?? { categories: [], accounts: [], limits: {} });
-        settle();
-      })
-    );
-
-    unsubs.push(
-      onSnapshot(query(collection(db, 'users', uid, 'transactions'), orderBy('createdAt', 'desc')), (snap) => {
-        setTransactions(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
-        settle();
-      })
-    );
-
-    unsubs.push(
-      onSnapshot(collection(db, 'users', uid, 'goals'), (snap) => {
-        setGoals(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Goal, 'id'>) })));
-        settle();
-      })
-    );
-
-    return () => unsubs.forEach((u) => u());
-  }, [uid]);
-
-  const value = useMemo<DataContextValue>(() => {
-    const configRef = () => doc(db, 'users', uid!, 'config', 'data');
-    const profileRef = () => doc(db, 'users', uid!);
-
-    return {
+  const value = useMemo<DataContextValue>(
+    () => ({
       loading,
       setupComplete: profile.setupComplete,
       warnThreshold: profile.warnThreshold ?? DEFAULT_WARN_THRESHOLD,
@@ -140,49 +93,59 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       transactions,
       goals,
       completeSetup: async (accounts, categories, limits) => {
-        if (!uid) return;
-        await setDoc(configRef(), { accounts, categories, limits });
-        await setDoc(profileRef(), { setupComplete: true, warnThreshold: DEFAULT_WARN_THRESHOLD }, { merge: true });
+        const nextConfig = { accounts, categories, limits };
+        const nextProfile = { setupComplete: true, warnThreshold: DEFAULT_WARN_THRESHOLD };
+        setConfig(nextConfig);
+        setProfile(nextProfile);
+        await Promise.all([writeJson(StorageKeys.config, nextConfig), writeJson(StorageKeys.profile, nextProfile)]);
       },
       addCategory: async (name) => {
-        if (!uid) return;
         const id = 'c' + Date.now();
         const hue = NEW_CATEGORY_HUES[config.categories.length % NEW_CATEGORY_HUES.length];
-        const nextCategories = [...config.categories, { id, name, hue }];
-        const nextLimits = { ...config.limits, [id]: DEFAULT_CATEGORY_LIMIT };
-        await updateDoc(configRef(), { categories: nextCategories, limits: nextLimits });
+        const nextConfig: ConfigDoc = {
+          ...config,
+          categories: [...config.categories, { id, name, hue }],
+          limits: { ...config.limits, [id]: DEFAULT_CATEGORY_LIMIT },
+        };
+        setConfig(nextConfig);
+        await writeJson(StorageKeys.config, nextConfig);
       },
       removeCategory: async (id) => {
-        if (!uid) return;
-        const nextCategories = config.categories.filter((c) => c.id !== id);
         const nextLimits = { ...config.limits };
         delete nextLimits[id];
-        await updateDoc(configRef(), { categories: nextCategories, limits: nextLimits });
+        const nextConfig: ConfigDoc = {
+          ...config,
+          categories: config.categories.filter((c) => c.id !== id),
+          limits: nextLimits,
+        };
+        setConfig(nextConfig);
+        await writeJson(StorageKeys.config, nextConfig);
       },
       setLimit: async (categoryId, amount) => {
-        if (!uid) return;
-        const nextLimits = { ...config.limits, [categoryId]: Math.max(0, amount) };
-        await updateDoc(configRef(), { limits: nextLimits });
+        const nextConfig: ConfigDoc = { ...config, limits: { ...config.limits, [categoryId]: Math.max(0, amount) } };
+        setConfig(nextConfig);
+        await writeJson(StorageKeys.config, nextConfig);
       },
       addTransaction: async (tx) => {
-        if (!uid) return;
-        await addDoc(collection(db, 'users', uid, 'transactions'), tx);
+        const next = [...transactions, { ...tx, id: 't' + Date.now() }];
+        setTransactions(next);
+        await writeJson(StorageKeys.transactions, next);
       },
       addGoal: async (name, target) => {
-        if (!uid) return;
         const hues = [25, 60, 145, 200, 250, 285, 320];
         const hue = hues[goals.length % hues.length];
-        await addDoc(collection(db, 'users', uid, 'goals'), { name, target, saved: 0, hue });
+        const next = [...goals, { id: 'g' + Date.now(), name, target, saved: 0, hue }];
+        setGoals(next);
+        await writeJson(StorageKeys.goals, next);
       },
       contributeToGoal: async (goalId, amount) => {
-        if (!uid) return;
-        const g = goals.find((x) => x.id === goalId);
-        if (!g) return;
-        const nextSaved = Math.min(g.target, g.saved + amount);
-        await updateDoc(doc(db, 'users', uid, 'goals', goalId), { saved: nextSaved });
+        const next = goals.map((g) => (g.id === goalId ? { ...g, saved: Math.min(g.target, g.saved + amount) } : g));
+        setGoals(next);
+        await writeJson(StorageKeys.goals, next);
       },
-    };
-  }, [uid, loading, profile, config, transactions, goals]);
+    }),
+    [loading, profile, config, transactions, goals]
+  );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
