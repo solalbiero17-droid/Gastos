@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Mis Gastos",
+    "slug": "mis-gastos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "misgastos",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#faf9f6",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.misgastos.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#faf9f6",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.misgastos.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
