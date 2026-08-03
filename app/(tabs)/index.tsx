@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSession } from '../../src/context/SessionContext';
 import { useData } from '../../src/context/DataContext';
 import { useToast } from '../../src/context/ToastContext';
 import { Toast, AlertBanner } from '../../src/components/Toast';
@@ -17,7 +16,6 @@ import { categoryInitial, categoryViews, overallLimit, spentByCategory } from '.
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { logout } = useSession();
   const { categories, limits, transactions, warnThreshold } = useData();
   const { toast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -72,15 +70,6 @@ export default function HomeScreen() {
                 style={styles.menuItem}
               >
                 <Text style={styles.menuItemLabel}>Cuentas y categorías</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setMenuOpen(false);
-                  logout();
-                }}
-                style={styles.menuItem}
-              >
-                <Text style={[styles.menuItemLabel, { color: colors.redSoftText }]}>Cerrar sesión</Text>
               </Pressable>
             </View>
           )}

@@ -12,7 +12,6 @@ import {
   Nunito_800ExtraBold,
   Nunito_900Black,
 } from '@expo-google-fonts/nunito';
-import { SessionProvider } from '../src/context/SessionContext';
 import { DataProvider } from '../src/context/DataContext';
 import { ToastProvider } from '../src/context/ToastContext';
 import { RootNavigationGate } from '../src/navigation/RootNavigationGate';
@@ -42,23 +41,20 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <SessionProvider>
-          <DataProvider>
-            <ToastProvider>
-              <View style={{ flex: 1, backgroundColor: colors.appBg }}>
-                <RootNavigationGate />
-                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.appBg } }}>
-                  <Stack.Screen name="login" />
-                  <Stack.Screen name="setup" />
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="add" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="limits" options={{ animation: 'slide_from_right' }} />
-                  <Stack.Screen name="accounts" options={{ animation: 'slide_from_right' }} />
-                </Stack>
-              </View>
-            </ToastProvider>
-          </DataProvider>
-        </SessionProvider>
+        <DataProvider>
+          <ToastProvider>
+            <View style={{ flex: 1, backgroundColor: colors.appBg }}>
+              <RootNavigationGate />
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.appBg } }}>
+                <Stack.Screen name="setup" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="add" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="limits" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="accounts" options={{ animation: 'slide_from_right' }} />
+              </Stack>
+            </View>
+          </ToastProvider>
+        </DataProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
