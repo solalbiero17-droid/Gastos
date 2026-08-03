@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "misgastos",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "backgroundColor": "#faf9f6",
     "ios": {
       "supportsTablet": true,
