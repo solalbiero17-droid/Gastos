@@ -23,7 +23,7 @@ export function RootNavigationGate() {
     const group: string | undefined = segments[0];
     const inAuthFlow = group === 'login';
     const inSetup = group === 'setup';
-    const inApp = group === '(tabs)' || group === 'add' || group === 'limits';
+    const inApp = group === '(tabs)' || group === 'add' || group === 'limits' || group === 'accounts';
 
     if (!loggedIn && !inAuthFlow) {
       router.replace('/login');

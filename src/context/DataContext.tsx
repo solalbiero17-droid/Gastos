@@ -52,6 +52,7 @@ interface DataContextValue {
   addCategory: (name: string) => Promise<void>;
   removeCategory: (id: string) => Promise<void>;
   setLimit: (categoryId: string, amount: number) => Promise<void>;
+  setAccountBalance: (accountId: string, currentBalance: number) => Promise<void>;
   addTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void>;
   addGoal: (name: string, target: number) => Promise<void>;
   contributeToGoal: (goalId: string, amount: number) => Promise<void>;
@@ -123,6 +124,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       },
       setLimit: async (categoryId, amount) => {
         const nextConfig: ConfigDoc = { ...config, limits: { ...config.limits, [categoryId]: Math.max(0, amount) } };
+        setConfig(nextConfig);
+        await writeJson(StorageKeys.config, nextConfig);
+      },
+      setAccountBalance: async (accountId, currentBalance) => {
+        const net = transactions
+          .filter((t) => t.accountId === accountId)
+          .reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+        const nextConfig: ConfigDoc = {
+          ...config,
+          accounts: config.accounts.map((a) =>
+            a.id === accountId ? { ...a, baseBalance: currentBalance - net } : a
+          ),
+        };
         setConfig(nextConfig);
         await writeJson(StorageKeys.config, nextConfig);
       },

@@ -67,6 +67,15 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() => {
                   setMenuOpen(false);
+                  router.push('/accounts');
+                }}
+                style={styles.menuItem}
+              >
+                <Text style={styles.menuItemLabel}>Cuentas y categorías</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setMenuOpen(false);
                   logout();
                 }}
                 style={styles.menuItem}
@@ -134,6 +143,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 20,
   },
   monthLabel: {
     fontSize: 14,
