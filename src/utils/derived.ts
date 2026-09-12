@@ -1,6 +1,6 @@
 import type { Account, Category, Goal, Limits, Transaction } from '../types';
 import { categoryColor, colors } from '../constants/theme';
-import { monthKey as monthKeyOf } from './format';
+import { monthKey as monthKeyOf, monthKeyToDate } from './format';
 
 export function spentByCategory(transactions: Transaction[], month: string): Record<string, number> {
   const map: Record<string, number> = {};
@@ -79,10 +79,24 @@ export function goalViews(goals: Goal[], leftover: number): GoalView[] {
   }));
 }
 
+/** Every month from the earliest transaction through the current month, inclusive — even
+ * months with no activity — so the stats screen can browse any past month, not just ones
+ * that happen to have a transaction in them. */
 export function allMonthKeys(transactions: Transaction[], currentMonth: string): string[] {
-  const set = new Set<string>([currentMonth]);
-  for (const t of transactions) set.add(monthKeyOf(new Date(t.createdAt)));
-  return Array.from(set).sort();
+  let earliest = currentMonth;
+  for (const t of transactions) {
+    const key = monthKeyOf(new Date(t.createdAt));
+    if (key < earliest) earliest = key;
+  }
+
+  const months: string[] = [];
+  const cursor = monthKeyToDate(earliest);
+  const end = monthKeyToDate(currentMonth);
+  while (cursor <= end) {
+    months.push(monthKeyOf(cursor));
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return months;
 }
 
 export function categoryInitial(name: string): string {
