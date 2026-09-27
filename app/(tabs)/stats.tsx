@@ -6,12 +6,12 @@ import { CategoryAvatar } from '../../src/components/CategoryAvatar';
 import { ProgressBar } from '../../src/components/ProgressBar';
 import { colors, radii, shadow } from '../../src/constants/theme';
 import { categoryColor, categorySoft } from '../../src/utils/oklch';
-import { fmtArs, fmtSigned, monthKey as monthKeyOf, monthLabel } from '../../src/utils/format';
-import { allMonthKeys, categoryInitial, incomeForMonth, spentByCategory, spentTotalForMonth } from '../../src/utils/derived';
+import { fmtArs, fmt, fmtSigned, monthKey as monthKeyOf, monthLabel, endOfMonthTimestamp } from '../../src/utils/format';
+import { allMonthKeys, accountBalanceAsOf, categoryInitial, incomeForMonth, spentByCategory, spentTotalForMonth } from '../../src/utils/derived';
 
 export default function StatsScreen() {
   const insets = useSafeAreaInsets();
-  const { transactions, categories } = useData();
+  const { transactions, categories, accounts } = useData();
   const currentMonth = useMemo(() => monthKeyOf(new Date()), []);
   const months = useMemo(() => allMonthKeys(transactions, currentMonth), [transactions, currentMonth]);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -34,6 +34,14 @@ export default function StatsScreen() {
   const maxCat = Math.max(1, ...categories.map((c) => spent[c.id] || 0));
   const firstLabel = monthLabel(months[0] ?? selectedMonth, currentMonth);
   const lastLabel = monthLabel(months[months.length - 1] ?? selectedMonth, currentMonth);
+
+  const balanceCutoff = useMemo(() => endOfMonthTimestamp(selectedMonth), [selectedMonth]);
+  const arsAccounts = accounts.filter((a) => a.currency === 'ARS');
+  const usdAccounts = accounts.filter((a) => a.currency === 'USD');
+  const balancesLabel =
+    selectedMonth === currentMonth
+      ? 'Saldos actuales'
+      : `Saldos al cierre de ${monthLabel(selectedMonth, currentMonth).toLowerCase()}`;
 
   return (
     <ScrollView
@@ -88,6 +96,30 @@ export default function StatsScreen() {
         <Text style={[styles.savedValue, { color: totalSaved >= 0 ? colors.green : colors.red }]}>
           {fmtSigned(totalSaved, 'ARS')}
         </Text>
+      </View>
+
+      <Text style={styles.sectionTitle}>{balancesLabel}</Text>
+      <View style={[styles.accCard, shadow.card]}>
+        {arsAccounts.map((a, i) => (
+          <View key={a.id} style={[styles.accRow, i === arsAccounts.length - 1 && usdAccounts.length === 0 && styles.accRowLast]}>
+            <View style={styles.accRowLeft}>
+              <View style={[styles.accDot, { backgroundColor: categoryColor(a.hue) }]} />
+              <Text style={styles.statName}>{a.name}</Text>
+            </View>
+            <Text style={styles.statAmount}>{fmtArs(accountBalanceAsOf(a, transactions, balanceCutoff))}</Text>
+          </View>
+        ))}
+        {usdAccounts.map((a, i) => (
+          <View key={a.id} style={[styles.accRow, i === usdAccounts.length - 1 && styles.accRowLast]}>
+            <View style={styles.accRowLeft}>
+              <View style={[styles.accDot, { backgroundColor: categoryColor(a.hue) }]} />
+              <Text style={styles.statName}>{a.name}</Text>
+            </View>
+            <Text style={[styles.statAmount, { color: colors.violet }]}>
+              {fmt(accountBalanceAsOf(a, transactions, balanceCutoff), 'USD')}
+            </Text>
+          </View>
+        ))}
       </View>
 
       <Text style={styles.sectionTitle}>Gasto por categoría</Text>
@@ -226,5 +258,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Nunito_900Black',
     color: colors.ink,
+  },
+  accRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  accRowLast: {
+    borderBottomWidth: 0,
+  },
+  accRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  accDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 99,
+  },
+  accCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    paddingHorizontal: 16,
   },
 });

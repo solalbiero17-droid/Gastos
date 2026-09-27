@@ -34,6 +34,12 @@ export function monthKeyToDate(key: string): Date {
   return new Date(y, m - 1, 1);
 }
 
+/** Timestamp of the last millisecond of the given month. */
+export function endOfMonthTimestamp(key: string): number {
+  const d = monthKeyToDate(key);
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+}
+
 export function monthLabel(key: string, currentKey: string): string {
   const d = monthKeyToDate(key);
   const currentYear = monthKeyToDate(currentKey).getFullYear();

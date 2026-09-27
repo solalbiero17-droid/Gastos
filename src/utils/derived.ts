@@ -64,6 +64,16 @@ export function accountBalance(account: Account, transactions: Transaction[]): n
   return balance;
 }
 
+/** Account balance as of a point in time — e.g. the end of a past month — instead of "now". */
+export function accountBalanceAsOf(account: Account, transactions: Transaction[], cutoffMs: number): number {
+  let balance = account.baseBalance;
+  for (const t of transactions) {
+    if (t.accountId !== account.id || t.createdAt > cutoffMs) continue;
+    balance += t.type === 'ingreso' ? t.amount : -t.amount;
+  }
+  return balance;
+}
+
 export interface GoalView extends Goal {
   pct: number;
   projected: number;

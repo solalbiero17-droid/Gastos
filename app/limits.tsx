@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,14 +7,18 @@ import { TextField } from '../src/components/TextField';
 import { CategoryAvatar } from '../src/components/CategoryAvatar';
 import { colors, radii, shadow, LIMIT_STEP } from '../src/constants/theme';
 import { categoryColor, categorySoft } from '../src/utils/oklch';
-import { fmtArs } from '../src/utils/format';
+import { fmtArs, monthKey as monthKeyOf } from '../src/utils/format';
 import { categoryInitial, overallLimit } from '../src/utils/derived';
 
 export default function LimitsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { categories, limits, setLimit } = useData();
+  const { categories, limits, setLimit, markLimitsReviewed } = useData();
   const overall = useMemo(() => overallLimit(limits), [limits]);
+
+  useEffect(() => {
+    markLimitsReviewed(monthKeyOf(new Date()));
+  }, [markLimitsReviewed]);
 
   return (
     <ScrollView

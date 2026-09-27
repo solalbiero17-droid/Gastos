@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../../src/context/DataContext';
 import { useToast } from '../../src/context/ToastContext';
-import { Toast, AlertBanner } from '../../src/components/Toast';
+import { Toast, AlertBanner, InfoBanner } from '../../src/components/Toast';
 import { ProgressBar } from '../../src/components/ProgressBar';
 import { CategoryAvatar } from '../../src/components/CategoryAvatar';
 import { colors, radii, shadow } from '../../src/constants/theme';
@@ -16,7 +16,7 @@ import { categoryInitial, categoryViews, overallLimit, spentByCategory } from '.
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { categories, limits, transactions, warnThreshold } = useData();
+  const { categories, limits, transactions, warnThreshold, limitsReviewedMonth } = useData();
   const { toast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -36,6 +36,8 @@ export default function HomeScreen() {
       : `Te pasaste del límite en ${overCats.map((c) => c.name).join(' y ')}.`;
 
   const barColor = overallPct >= 1 ? colors.over : overallPct >= warnThreshold ? colors.warn : colors.ok;
+
+  const needsLimitsReview = limitsReviewedMonth !== currentMonth;
 
   return (
     <ScrollView
@@ -78,6 +80,13 @@ export default function HomeScreen() {
 
       {toast ? <Toast message={toast} /> : null}
       {alertOn ? <AlertBanner message={alertText} /> : null}
+      {needsLimitsReview ? (
+        <InfoBanner
+          message={`Empezó ${monthTitle(currentMonth)} — revisá tus límites.`}
+          actionLabel="Revisar"
+          onAction={() => router.push('/limits')}
+        />
+      ) : null}
 
       <View style={styles.darkCard}>
         <View style={styles.darkCardTop}>

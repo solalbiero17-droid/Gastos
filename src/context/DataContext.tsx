@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { readJson, writeJson, StorageKeys } from '../storage';
 import type { Account, Category, Goal, Limits, Transaction } from '../types';
 import { DEFAULT_CATEGORY_LIMIT, DEFAULT_WARN_THRESHOLD, NEW_CATEGORY_HUES } from '../constants/theme';
+import { monthKey } from '../utils/format';
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'ropa', name: 'Ropa', hue: 25 },
@@ -34,15 +35,19 @@ interface ConfigDoc {
 interface ProfileDoc {
   setupComplete: boolean;
   warnThreshold: number;
+  /** Month key (e.g. "2026-09") the user last opened the limits screen in —
+   * used to nudge a review of limits at the start of a new month. */
+  limitsReviewedMonth: string;
 }
 
 const EMPTY_CONFIG: ConfigDoc = { categories: [], accounts: [], limits: {} };
-const DEFAULT_PROFILE: ProfileDoc = { setupComplete: false, warnThreshold: DEFAULT_WARN_THRESHOLD };
+const DEFAULT_PROFILE: ProfileDoc = { setupComplete: false, warnThreshold: DEFAULT_WARN_THRESHOLD, limitsReviewedMonth: '' };
 
 interface DataContextValue {
   loading: boolean;
   setupComplete: boolean;
   warnThreshold: number;
+  limitsReviewedMonth: string;
   categories: Category[];
   accounts: Account[];
   limits: Limits;
@@ -53,6 +58,7 @@ interface DataContextValue {
   removeCategory: (id: string) => Promise<void>;
   setLimit: (categoryId: string, amount: number) => Promise<void>;
   setAccountBalance: (accountId: string, currentBalance: number) => Promise<void>;
+  markLimitsReviewed: (month: string) => Promise<void>;
   addTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void>;
   addGoal: (name: string, target: number) => Promise<void>;
   contributeToGoal: (goalId: string, amount: number) => Promise<void>;
@@ -88,6 +94,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       loading,
       setupComplete: profile.setupComplete,
       warnThreshold: profile.warnThreshold ?? DEFAULT_WARN_THRESHOLD,
+      limitsReviewedMonth: profile.limitsReviewedMonth ?? '',
       categories: config.categories,
       accounts: config.accounts,
       limits: config.limits,
@@ -95,7 +102,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       goals,
       completeSetup: async (accounts, categories, limits) => {
         const nextConfig = { accounts, categories, limits };
-        const nextProfile = { setupComplete: true, warnThreshold: DEFAULT_WARN_THRESHOLD };
+        const nextProfile: ProfileDoc = {
+          setupComplete: true,
+          warnThreshold: DEFAULT_WARN_THRESHOLD,
+          limitsReviewedMonth: monthKey(new Date()),
+        };
         setConfig(nextConfig);
         setProfile(nextProfile);
         await Promise.all([writeJson(StorageKeys.config, nextConfig), writeJson(StorageKeys.profile, nextProfile)]);
@@ -139,6 +150,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         };
         setConfig(nextConfig);
         await writeJson(StorageKeys.config, nextConfig);
+      },
+      markLimitsReviewed: async (month) => {
+        if (profile.limitsReviewedMonth === month) return;
+        const nextProfile: ProfileDoc = { ...profile, limitsReviewedMonth: month };
+        setProfile(nextProfile);
+        await writeJson(StorageKeys.profile, nextProfile);
       },
       addTransaction: async (tx) => {
         const next = [...transactions, { ...tx, id: 't' + Date.now() }];
