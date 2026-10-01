@@ -58,8 +58,7 @@ export function categoryViews(categories: Category[], limits: Limits, spent: Rec
 export function accountBalance(account: Account, transactions: Transaction[]): number {
   let balance = account.baseBalance;
   for (const t of transactions) {
-    if (t.accountId !== account.id) continue;
-    balance += t.type === 'ingreso' ? t.amount : -t.amount;
+    balance += accountDelta(t, account.id);
   }
   return balance;
 }
@@ -68,10 +67,24 @@ export function accountBalance(account: Account, transactions: Transaction[]): n
 export function accountBalanceAsOf(account: Account, transactions: Transaction[], cutoffMs: number): number {
   let balance = account.baseBalance;
   for (const t of transactions) {
-    if (t.accountId !== account.id || t.createdAt > cutoffMs) continue;
-    balance += t.type === 'ingreso' ? t.amount : -t.amount;
+    if (t.createdAt > cutoffMs) continue;
+    balance += accountDelta(t, account.id);
   }
   return balance;
+}
+
+/** How much a transaction moves a given account's balance — handles gasto/ingreso
+ * (single account) and transferencia (debits accountId, credits toAccountId, possibly
+ * in a different currency/amount via toAmount). */
+export function accountDelta(t: Transaction, accountId: string): number {
+  if (t.type === 'transferencia') {
+    let delta = 0;
+    if (t.accountId === accountId) delta -= t.amount;
+    if (t.toAccountId === accountId) delta += t.toAmount ?? t.amount;
+    return delta;
+  }
+  if (t.accountId !== accountId) return 0;
+  return t.type === 'ingreso' ? t.amount : -t.amount;
 }
 
 export interface GoalView extends Goal {

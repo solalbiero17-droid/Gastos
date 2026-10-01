@@ -3,6 +3,7 @@ import { readJson, writeJson, StorageKeys } from '../storage';
 import type { Account, Category, Goal, Limits, Transaction } from '../types';
 import { DEFAULT_CATEGORY_LIMIT, DEFAULT_WARN_THRESHOLD, NEW_CATEGORY_HUES } from '../constants/theme';
 import { monthKey } from '../utils/format';
+import { accountDelta } from '../utils/derived';
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'ropa', name: 'Ropa', hue: 25 },
@@ -139,9 +140,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         await writeJson(StorageKeys.config, nextConfig);
       },
       setAccountBalance: async (accountId, currentBalance) => {
-        const net = transactions
-          .filter((t) => t.accountId === accountId)
-          .reduce((sum, t) => sum + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+        const net = transactions.reduce((sum, t) => sum + accountDelta(t, accountId), 0);
         const nextConfig: ConfigDoc = {
           ...config,
           accounts: config.accounts.map((a) =>

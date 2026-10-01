@@ -39,13 +39,21 @@ export default function ActivityScreen() {
         lastDay = day;
       }
       const isGasto = tx.type === 'gasto';
+      const isTransfer = tx.type === 'transferencia';
       const acc = accById[tx.accountId];
       const accName = acc?.name ?? 'Cuenta';
       const cat = tx.categoryId ? catById[tx.categoryId] : null;
       const isUsd = tx.currency === 'USD';
 
       let initial: string, color: string, soft: string, sub: string;
-      if (isUsd) {
+      if (isTransfer) {
+        const toAcc = tx.toAccountId ? accById[tx.toAccountId] : null;
+        const toName = toAcc?.name ?? 'otra cuenta';
+        initial = '⇄';
+        color = colors.violet;
+        soft = colors.violetSoft;
+        sub = `${accName} → ${toName}` + (tx.exchangeRate ? ` · recibiste ${fmt(tx.toAmount ?? tx.amount, toAcc?.currency ?? tx.currency)}` : '');
+      } else if (isUsd) {
         initial = 'U$';
         color = categoryColor(285);
         soft = categorySoft(285);
@@ -70,8 +78,8 @@ export default function ActivityScreen() {
         soft,
         note: tx.note,
         sub,
-        amountText: (isGasto ? '−' : '+') + fmt(tx.amount, tx.currency),
-        amountColor: isGasto ? colors.ink : colors.green,
+        amountText: (isTransfer ? '' : isGasto ? '−' : '+') + fmt(tx.amount, tx.currency),
+        amountColor: isTransfer ? colors.violet : isGasto ? colors.ink : colors.green,
       });
     }
     return groups;

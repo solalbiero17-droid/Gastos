@@ -16,9 +16,9 @@ export async function writeJson<T>(key: string, value: T): Promise<void> {
 }
 
 export const StorageKeys = {
-  session: 'session',
   profile: 'profile',
   config: 'config',
   transactions: 'transactions',
   goals: 'goals',
+  exchangeRate: 'exchangeRate',
 } as const;
